@@ -1,0 +1,55 @@
+{
+  "type": "object",
+  "x-display": "tabs",
+  "required": ["datasetMode", "sensors"],
+  "allOf": [{
+    "title": "Jeu de données",
+    "oneOf": [{
+      "title": "Créer un jeu de données",
+      "required": ["dataset"],
+      "properties": {
+        "datasetMode": { "type": "string", "const": "create", "title": "Action" },
+        "dataset": {
+          "type": "object",
+          "required": ["title"],
+          "properties": {
+            "id": {"type": "string", "title": "Identifiant (laissez vide pour calculer un identifiant à partir du titre)"},
+            "title": {"type": "string", "title": "Titre", "default": "Hello world "}
+          }
+        }
+      }
+    }, {
+      "title": "Mettre à jour un jeu de données",
+      "required": ["dataset"],
+      "properties": {
+        "datasetMode": { "type": "string", "const": "update" },
+        "dataset": {
+          "type": "object",
+          "x-fromUrl": "{context.dataFairUrl}/api/v1/datasets?q={q}&select=id,title&{context.ownerFilter}",
+          "x-itemsProp": "results",
+          "x-itemTitle": "title",
+          "x-itemKey": "id",
+          "properties": {
+            "id": {"type": "string", "title": "Identifiant"},
+            "title": {"type": "string", "title": "Titre"}
+          }
+        }
+      }
+    }]
+  }, {
+    "title": "Parametres",
+    "properties": {
+      "sensors": {
+        "type": "array",
+        "title": "Liste des capteurs",
+        "items": {
+          "type": "object",
+          "properties":{
+            "id": {"type": "string", "title": "Identifiant"},
+            "title": {"type": "string", "title": "Titre"}
+          }
+        }
+      }
+    }
+  }]
+}

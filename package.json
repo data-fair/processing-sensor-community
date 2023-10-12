@@ -1,0 +1,31 @@
+{
+  "name": "@data-fair/processing-sensor-community",
+  "version": "1.0.0",
+  "description": "Minimal plugin for data-fair-processings. Create one-line datasets on demand.",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha",
+    "lint": "eslint --ignore-path .gitignore .",
+    "lint-fix": "eslint --ignore-path .gitignore --fix ."
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/data-fair/processing-sensor-community.git"
+  },
+  "keywords": [
+    "data-fair-processings-plugin"
+  ],
+  "author": "Alban Mouton <alban.mouton@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/data-fair/processing-sensor-community/issues"
+  },
+  "homepage": "https://github.com/data-fair/processing-sensor-community#readme",
+  "devDependencies": {
+    "@data-fair/processings-test-utils": "^0.6.0",
+    "config": "^3.3.6",
+    "eslint": "^7.18.0",
+    "mocha": "^8.2.1",
+    "standard": "^16.0.3"
+  }
+}
