@@ -1,6 +1,4 @@
 {
   "type": "object",
-  "properties": {
-    "dataUrl": { "type": "string", "title": "URL pour récupérer les données", "default": "https://data.sensor.community/static/v2/data.json" }
-  }
+  "properties": {}
 }

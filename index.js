@@ -1,5 +1,4 @@
 const datasetSchema = [
-  { key: 'id', type: 'string', title: 'Identifiant' },
   {
     key: 'title',
     type: 'string',
@@ -11,6 +10,7 @@ const datasetSchema = [
       primary: true
     }
   },
+  { key: 'ids', type: 'string', title: 'Identifiants des capteurs', separator: ',' },
   {
     key: 'latitude',
     type: 'number',
@@ -45,10 +45,15 @@ const datasetSchema = [
       title: "Date d'évènement",
       primary: true
     }
-  },
-  { key: 'p0', type: 'number', title: 'PM1' },
-  { key: 'p1', type: 'number', title: 'PM10' },
-  { key: 'p2', type: 'number', title: 'PM2.5' }
+  }
+]
+
+const columns = [
+  { key: 'P0', type: 'number', title: 'PM1' },
+  { key: 'P1', type: 'number', title: 'PM10' },
+  { key: 'P2', type: 'number', title: 'PM2.5' },
+  { key: 'humidity', type: 'number', title: 'Hygrométrie' },
+  { key: 'temperature', type: 'number', title: 'Température' }
 ]
 
 // a global variable to manage interruption
@@ -65,7 +70,7 @@ const datasetSchema = [
 // patchConfig: async method accepting an object to be merged with the configuration
 // ws: an event emitter to wait for some state changes coming through web socket from the data-fair server
 // sendMail: an async function to send an email (see https://nodemailer.com/usage/#sending-mail)
-exports.run = async ({ pluginConfig, processingConfig, processingId, dir, tmpDir, axios, log, patchConfig, ws, sendMail }) => {
+exports.run = async ({ processingConfig, processingId, axios, log, patchConfig, ws }) => {
   let dataset
   if (processingConfig.datasetMode === 'create') {
     await log.step('Création du jeu de données')
@@ -73,7 +78,7 @@ exports.run = async ({ pluginConfig, processingConfig, processingId, dir, tmpDir
       id: processingConfig.dataset.id,
       title: processingConfig.dataset.title,
       isRest: true,
-      schema: datasetSchema,
+      schema: datasetSchema.concat(columns.filter(c => processingConfig.columns.includes(c.key))),
       extras: { processingId }
     })).data
     await log.info(`jeu de donnée créé, id="${dataset.id}", title="${dataset.title}"`)
@@ -87,35 +92,40 @@ exports.run = async ({ pluginConfig, processingConfig, processingId, dir, tmpDir
   }
 
   await log.step('Récupération des données')
-  const { data } = await axios.get(pluginConfig.dataUrl)
+  const { data } = await axios.get(processingConfig.dataUrl)
   await log.info(`Données de ${data.length} capteurs récupérées`)
   await log.info('Filtrage des données')
-  const sensors = Object.assign({}, ...processingConfig.sensors.map(s => ({ [s.id]: { title: s.title } })))
+  const ids = [].concat(...processingConfig.sensors.map(s => s.ids))
+  const sensors = {}
   data.forEach(d => {
-    if (d.sensor && sensors[d.sensor.id]) {
-      sensors[d.sensor.id].data = d
-      sensors[d.sensor.id].data.sensordatavalues = Object.assign({}, ...sensors[d.sensor.id].data.sensordatavalues.map(v => ({ [v.value_type]: Number(v.value) })))
+    if (d.sensor && ids.includes(d.sensor.id)) {
+      sensors[d.sensor.id] = d
+      sensors[d.sensor.id].sensordatavalues = Object.assign({}, ...sensors[d.sensor.id].sensordatavalues.filter(v => processingConfig.columns.includes(v.value_type)).map(v => ({ [v.value_type]: Number(v.value) })))
     }
   })
-  const errors = Object.keys(sensors).filter(id => !sensors[id].data)
+  const errors = ids.filter(id => !sensors[id])
   if (errors.length) await log.error(`Aucune donnée trouvée pour le(s) capteur(s) ${errors.join(', ')}`)
   for (const id of errors) delete sensors[id]
 
   await log.info(`Envoi des données pour ${Object.keys(sensors).length} capteurs`)
-
-  await axios.post(`api/v1/datasets/${dataset.id}/_bulk_lines`,
-    Object.entries(sensors).map(([id, v]) => ({
-      id,
-      title: v.title,
-      timestamp: v.data.timestamp.replace(' ', 'T') + 'Z',
-      latitude: Number(v.data.location.latitude),
-      longitude: Number(v.data.location.longitude),
-      altitude: Number(v.data.location.altitude),
-      p0: v.data.sensordatavalues.P0,
-      p1: v.data.sensordatavalues.P1,
-      p2: v.data.sensordatavalues.P2
-    }))
-  )
+  const bulk = processingConfig.sensors.filter(s => s.ids.find(id => sensors[id])).map(s => {
+    const sensor = s.ids.map(id => sensors[id]).pop()
+    const line = {
+      title: s.title,
+      ids: [],
+      timestamp: sensor.timestamp.replace(' ', 'T') + 'Z',
+      latitude: Number(sensor.location.latitude),
+      longitude: Number(sensor.location.longitude),
+      altitude: Number(sensor.location.altitude)
+    }
+    s.ids.filter(id => sensors[id]).forEach(id => {
+      line.ids.push(id)
+      Object.assign(line, sensors[id].sensordatavalues)
+    })
+    line.ids = line.ids.join(',')
+    return line
+  })
+  await axios.post(`api/v1/datasets/${dataset.id}/_bulk_lines`, bulk)
   await log.info(`${Object.keys(sensors).filter(id => sensors[id].data).length} ligne(s) de donnée écrite`)
   await ws.waitForJournal(dataset.id, 'finalize-end')
 }

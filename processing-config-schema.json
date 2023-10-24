@@ -39,15 +39,34 @@
   }, {
     "title": "Parametres",
     "properties": {
+      "dataUrl": { "type": "string", "title": "URL pour récupérer les données", "default": "https://data.sensor.community/static/v2/data.json" },
       "sensors": {
         "type": "array",
-        "title": "Liste des capteurs",
+        "title": "Liste des sites",
         "items": {
           "type": "object",
           "properties":{
-            "id": {"type": "string", "title": "Identifiant"},
-            "title": {"type": "string", "title": "Titre"}
+            "title": {"type": "string", "title": "Libellé du site"},
+            "ids": {
+              "type": "array", 
+              "title": "Identifiants des capteurs",
+              "items": { "type": "integer"}
+            }
           }
+        }
+      },
+      "columns":{
+        "type": "array",
+        "title": "colonnes",
+        "items": {
+          "type": "string",
+          "oneOf": [
+            {"const": "P0", "title": "PM1"},
+            {"const": "P1", "title": "PM10"},
+            {"const": "P2", "title": "PM2.5"},
+            {"const": "humidity", "title": "Hygrométrie"},
+            {"const": "temperature", "title": "Température"}
+          ]
         }
       }
     }
