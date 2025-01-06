@@ -107,9 +107,9 @@ exports.run = async ({ processingConfig, processingId, axios, log, patchConfig, 
   if (errors.length) await log.error(`Aucune donnée trouvée pour le(s) capteur(s) ${errors.join(', ')}`)
   for (const id of errors) delete sensors[id]
 
-  await log.info(`Envoi des données pour ${Object.keys(sensors).length} capteurs`)
+  await log.info(`Envoi des données pour ${ids.filter(id => sensors[id]).length} capteurs`)
   const bulk = processingConfig.sensors.filter(s => s.ids.find(id => sensors[id])).map(s => {
-    const sensor = s.ids.map(id => sensors[id]).pop()
+    const sensor = sensors[s.ids.find(id => sensors[id])]
     const line = {
       title: s.title,
       ids: [],
