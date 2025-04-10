@@ -83,7 +83,7 @@ exports.run = async ({ processingConfig, processingId, axios, log, patchConfig, 
     })).data
     await log.info(`jeu de donnée créé, id="${dataset.id}", title="${dataset.title}"`)
     await patchConfig({ datasetMode: 'update', dataset: { id: dataset.id, title: dataset.title } })
-    await ws.waitForJournal(dataset.id, 'finalize-end')
+    if (dataset.status !== 'finalized') await ws.waitForJournal(dataset.id, 'finalize-end')
   } else if (processingConfig.datasetMode === 'update') {
     await log.step('Vérification du jeu de données')
     dataset = (await axios.get(`api/v1/datasets/${processingConfig.dataset.id}`)).data
