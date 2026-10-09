@@ -1,74 +1,92 @@
 {
   "type": "object",
-  "x-display": "tabs",
+  "layout": "tabs",
   "required": ["datasetMode", "sensors"],
-  "allOf": [{
-    "title": "Jeu de données",
-    "oneOf": [{
-      "title": "Créer un jeu de données",
-      "required": ["dataset"],
-      "properties": {
-        "datasetMode": { "type": "string", "const": "create", "title": "Action" },
-        "dataset": {
-          "type": "object",
-          "required": ["title"],
+  "allOf": [
+    {
+      "title": "Jeu de données",
+      "default": { "datasetMode": "create", "datasetTitle": "Capteurs Sensor Community" },
+      "oneOf": [
+        {
+          "title": "Créer un jeu de données",
           "properties": {
-            "id": {"type": "string", "title": "Identifiant (laissez vide pour calculer un identifiant à partir du titre)"},
-            "title": {"type": "string", "title": "Titre", "default": "Hello world "}
+            "datasetMode": { "type": "string", "const": "create", "title": "Action" },
+            "datasetTitle": {
+              "type": "string",
+              "title": "Titre du jeu de données à créer",
+              "description": "Le jeu de données est créé lors de la première exécution, le traitement passe ensuite automatiquement en mode mise à jour.",
+              "default": "Capteurs Sensor Community"
+            }
           }
-        }
-      }
-    }, {
-      "title": "Mettre à jour un jeu de données",
-      "required": ["dataset"],
-      "properties": {
-        "datasetMode": { "type": "string", "const": "update" },
-        "dataset": {
-          "type": "object",
-          "x-fromUrl": "{context.dataFairUrl}/api/v1/datasets?q={q}&select=id,title&{context.ownerFilter}",
-          "x-itemsProp": "results",
-          "x-itemTitle": "title",
-          "x-itemKey": "id",
+        },
+        {
+          "title": "Mettre à jour un jeu de données",
+          "required": ["dataset"],
           "properties": {
-            "id": {"type": "string", "title": "Identifiant"},
-            "title": {"type": "string", "title": "Titre"}
-          }
-        }
-      }
-    }]
-  }, {
-    "title": "Parametres",
-    "properties": {
-      "dataUrl": { "type": "string", "title": "URL pour récupérer les données", "default": "https://data.sensor.community/static/v2/data.json" },
-      "sensors": {
-        "type": "array",
-        "title": "Liste des sites",
-        "items": {
-          "type": "object",
-          "properties":{
-            "title": {"type": "string", "title": "Libellé du site"},
-            "ids": {
-              "type": "array", 
-              "title": "Identifiants des capteurs",
-              "items": { "type": "integer"}
+            "datasetMode": { "type": "string", "const": "update", "title": "Action" },
+            "dataset": {
+              "type": "object",
+              "title": "Jeu de données existant",
+              "layout": {
+                "getItems": {
+                  "url": "${context.dataFairUrl}/api/v1/datasets?select=id,title&size=50&${context.ownerFilter}&raw=true",
+                  "qSearchParam": "q",
+                  "itemsResults": "data.results",
+                  "itemTitle": "item.title",
+                  "itemKey": "item.id"
+                }
+              },
+              "properties": {
+                "id": { "type": "string", "title": "Identifiant" },
+                "title": { "type": "string", "title": "Titre" }
+              }
             }
           }
         }
-      },
-      "columns":{
-        "type": "array",
-        "title": "colonnes",
-        "items": {
+      ]
+    },
+    {
+      "title": "Paramètres",
+      "properties": {
+        "dataUrl": {
           "type": "string",
-          "oneOf": [
-            {"const": "P0", "title": "PM1"},
-            {"const": "P1", "title": "PM10"},
-            {"const": "P2", "title": "PM2.5"},
-            {"const": "humidity", "title": "Hygrométrie"},
-            {"const": "temperature", "title": "Température"}
-          ]
+          "title": "URL pour récupérer les données",
+          "description": "Flux JSON de sensor.community, seules les URLs https://data.sensor.community sont acceptées. Par défaut la dernière mesure de chaque capteur (moyenne sur 5 minutes).",
+          "default": "https://data.sensor.community/static/v2/data.json"
+        },
+        "sensors": {
+          "type": "array",
+          "title": "Liste des sites",
+          "description": "Une ligne est ajoutée au jeu de données pour chaque site à chaque exécution. Les mesures des capteurs d'un même site sont regroupées sur cette ligne.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "title": { "type": "string", "title": "Libellé du site" },
+              "ids": {
+                "type": "array",
+                "title": "Identifiants des capteurs",
+                "items": { "type": "integer" }
+              }
+            }
+          }
+        },
+        "columns": {
+          "type": "array",
+          "title": "Mesures",
+          "description": "Ces colonnes sont ajoutées au jeu de données à sa création.",
+          "default": ["P0", "P1", "P2", "humidity", "temperature"],
+          "items": {
+            "type": "string",
+            "oneOf": [
+              { "const": "P0", "title": "PM1" },
+              { "const": "P1", "title": "PM10" },
+              { "const": "P2", "title": "PM2.5" },
+              { "const": "humidity", "title": "Hygrométrie" },
+              { "const": "temperature", "title": "Température" }
+            ]
+          }
         }
       }
     }
-  }]
+  ]
 }
