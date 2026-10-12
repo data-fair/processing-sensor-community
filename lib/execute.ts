@@ -14,7 +14,8 @@ export const run: RunFunction<ProcessingConfig> = async ({ processingConfig, pro
   if (processingConfig.datasetMode === 'create') {
     await log.step('Création du jeu de données')
     dataset = (await axios.post('api/v1/datasets', {
-      title: processingConfig.datasetTitle || 'Capteurs Sensor Community',
+      // 1.x create configs carried the title in dataset.title
+      title: processingConfig.datasetTitle || (processingConfig as { dataset?: { title?: string } }).dataset?.title || 'Capteurs Sensor Community',
       isRest: true,
       schema: [...datasetSchema, ...columns.filter(c => selectedColumns.includes(c.key))],
       extras: { processingId }
