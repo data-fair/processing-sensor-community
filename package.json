@@ -1,6 +1,6 @@
 {
   "name": "@data-fair/processing-sensor-community",
-  "version": "1.1.2",
+  "version": "1.2.0",
   "description": "Import measures of Sensor Community sensors (particulate matter, temperature, humidity) into a data-fair dataset.",
   "main": "index.ts",
   "type": "module",
