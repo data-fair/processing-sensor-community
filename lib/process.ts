@@ -24,14 +24,17 @@ type SensorData = { timestamp: string, location: Measure['location'], values: Re
  */
 export const buildLines = (measures: Measure[], sites: Site[], columns: string[]) => {
   const ids = sites.flatMap(s => s.ids ?? [])
+  // the feed holds tens of thousands of entries: look the sensors and columns up in sets
+  const wantedIds = new Set(ids)
+  const wantedColumns = new Set(columns)
   const sensors: Record<number, SensorData> = {}
   for (const m of measures) {
-    if (!m.sensor || !ids.includes(m.sensor.id)) continue
+    if (!m.sensor || !wantedIds.has(m.sensor.id)) continue
     // a sensor can appear in several entries of the feed, each one carrying some of its values
     const sensor = sensors[m.sensor.id] ??= { timestamp: m.timestamp, location: m.location, values: {} }
     if (m.timestamp > sensor.timestamp) sensor.timestamp = m.timestamp
     for (const v of m.sensordatavalues) {
-      if (columns.includes(v.value_type)) sensor.values[v.value_type] = Number(v.value)
+      if (wantedColumns.has(v.value_type)) sensor.values[v.value_type] = Number(v.value)
     }
   }
 
