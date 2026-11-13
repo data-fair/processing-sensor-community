@@ -4,29 +4,35 @@
   "required": ["datasetMode", "sensors"],
   "allOf": [
     {
-      "title": "Jeu de données",
+      "title": "Dataset",
+      "x-i18n-title": { "fr": "Jeu de données" },
       "default": { "datasetMode": "create", "datasetTitle": "Capteurs Sensor Community" },
       "oneOf": [
         {
-          "title": "Créer un jeu de données",
+          "title": "Dataset creation",
+          "x-i18n-title": { "fr": "Créer un jeu de données", "en": "Create a dataset" },
           "properties": {
             "datasetMode": { "type": "string", "const": "create", "title": "Action" },
             "datasetTitle": {
               "type": "string",
-              "title": "Titre du jeu de données à créer",
-              "description": "Le jeu de données est créé lors de la première exécution, le traitement passe ensuite automatiquement en mode mise à jour.",
+              "title": "Title of the dataset to create",
+              "x-i18n-title": { "fr": "Titre du jeu de données à créer" },
+              "description": "The dataset is created on the first run, then the processing automatically switches to update mode.",
+              "x-i18n-description": { "fr": "Le jeu de données est créé lors de la première exécution, le traitement passe ensuite automatiquement en mode mise à jour." },
               "default": "Capteurs Sensor Community"
             }
           }
         },
         {
-          "title": "Mettre à jour un jeu de données",
+          "title": "Dataset update",
+          "x-i18n-title": { "fr": "Mettre à jour un jeu de données", "en": "Update a dataset" },
           "required": ["dataset"],
           "properties": {
             "datasetMode": { "type": "string", "const": "update", "title": "Action" },
             "dataset": {
               "type": "object",
-              "title": "Jeu de données existant",
+              "title": "Existing dataset",
+              "x-i18n-title": { "fr": "Jeu de données existant" },
               "layout": {
                 "getItems": {
                   "url": "${context.dataFairUrl}/api/v1/datasets?select=id,title&size=50&${context.ownerFilter}&raw=true",
@@ -37,8 +43,8 @@
                 }
               },
               "properties": {
-                "id": { "type": "string", "title": "Identifiant" },
-                "title": { "type": "string", "title": "Titre" }
+                "id": { "type": "string", "title": "Identifier", "x-i18n-title": { "fr": "Identifiant" } },
+                "title": { "type": "string", "title": "Title", "x-i18n-title": { "fr": "Titre" } }
               }
             }
           }
@@ -46,25 +52,31 @@
       ]
     },
     {
-      "title": "Paramètres",
+      "title": "Parameters",
+      "x-i18n-title": { "fr": "Paramètres" },
       "properties": {
         "dataUrl": {
           "type": "string",
-          "title": "URL pour récupérer les données",
-          "description": "Flux JSON de sensor.community, seules les URLs https://data.sensor.community sont acceptées. Par défaut la dernière mesure de chaque capteur (moyenne sur 5 minutes).",
+          "title": "Data URL",
+          "x-i18n-title": { "fr": "URL pour récupérer les données" },
+          "description": "JSON feed of sensor.community, only https://data.sensor.community URLs are accepted. By default, the latest measure of each sensor (5-minute average).",
+          "x-i18n-description": { "fr": "Flux JSON de sensor.community, seules les URLs https://data.sensor.community sont acceptées. Par défaut la dernière mesure de chaque capteur (moyenne sur 5 minutes)." },
           "default": "https://data.sensor.community/static/v2/data.json"
         },
         "sensors": {
           "type": "array",
-          "title": "Liste des sites",
-          "description": "Une ligne est ajoutée au jeu de données pour chaque site à chaque exécution. Les mesures des capteurs d'un même site sont regroupées sur cette ligne.",
+          "title": "Sites",
+          "x-i18n-title": { "fr": "Liste des sites" },
+          "description": "A line is added to the dataset for each site on every run. The measures of the sensors of a site are grouped on this line.",
+          "x-i18n-description": { "fr": "Une ligne est ajoutée au jeu de données pour chaque site à chaque exécution. Les mesures des capteurs d'un même site sont regroupées sur cette ligne." },
           "items": {
             "type": "object",
             "properties": {
-              "title": { "type": "string", "title": "Libellé du site" },
+              "title": { "type": "string", "title": "Site label", "x-i18n-title": { "fr": "Libellé du site" } },
               "ids": {
                 "type": "array",
-                "title": "Identifiants des capteurs",
+                "title": "Sensor identifiers",
+                "x-i18n-title": { "fr": "Identifiants des capteurs" },
                 "items": { "type": "integer" }
               }
             }
@@ -72,8 +84,10 @@
         },
         "columns": {
           "type": "array",
-          "title": "Mesures",
-          "description": "Ces colonnes sont ajoutées au jeu de données à sa création.",
+          "title": "Measures",
+          "x-i18n-title": { "fr": "Mesures" },
+          "description": "These columns are added to the dataset when it is created.",
+          "x-i18n-description": { "fr": "Ces colonnes sont ajoutées au jeu de données à sa création." },
           "default": ["P0", "P1", "P2", "humidity", "temperature"],
           "items": {
             "type": "string",
@@ -81,8 +95,8 @@
               { "const": "P0", "title": "PM1" },
               { "const": "P1", "title": "PM10" },
               { "const": "P2", "title": "PM2.5" },
-              { "const": "humidity", "title": "Hygrométrie" },
-              { "const": "temperature", "title": "Température" }
+              { "const": "humidity", "title": "Humidity", "x-i18n-title": { "fr": "Hygrométrie" } },
+              { "const": "temperature", "title": "Temperature", "x-i18n-title": { "fr": "Température" } }
             ]
           }
         }

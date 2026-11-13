@@ -20,6 +20,22 @@ describe('Sensor Community processing', () => {
     assert.equal(legacy, null)
   })
 
+  it('gives a French translation to every override', () => {
+    const overrides: Record<string, string>[] = []
+    const walk = (v: unknown) => {
+      if (Array.isArray(v)) v.forEach(walk)
+      else if (v && typeof v === 'object') {
+        for (const [k, child] of Object.entries(v)) {
+          if (k.startsWith('x-i18n-')) overrides.push(child as Record<string, string>)
+          else walk(child)
+        }
+      }
+    }
+    walk(processingConfigSchema)
+    assert.ok(overrides.length > 0)
+    for (const o of overrides) assert.ok(o.fr, JSON.stringify(o))
+  })
+
   it('builds one line per site, merging its sensors', () => {
     const { lines, missing } = buildLines([
       measure(1, '2026-10-09 14:25:19', { P1: '3.90', P2: '1.20', durP1: '5013' }),
