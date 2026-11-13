@@ -12,7 +12,7 @@ export const DEFAULT_SOURCE_URL = 'https://data.sensor.community/static/v2/data.
 // the worker axios sends the data-fair API key to data-fair urls, a free url would let a config read data-fair with it
 export const checkSourceUrl = (url: string) => {
   const { protocol, host } = new URL(url)
-  if (protocol !== 'https:' || host !== 'data.sensor.community') throw new Error(`URL non autorisée, seules les URLs https://data.sensor.community sont acceptées : ${url}`)
+  if (protocol !== 'https:' || host !== 'data.sensor.community') throw new Error(`URL not allowed, only https://data.sensor.community URLs are accepted (got ${protocol}//${host})`)
   return url
 }
 

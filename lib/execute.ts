@@ -16,7 +16,7 @@ export const run: RunFunction<ProcessingConfig> = async ({ processingConfig, pro
 
   let dataset: { id: string, title: string, status?: string }
   if (processingConfig.datasetMode === 'create') {
-    await log.step('Création du jeu de données')
+    await log.step('Create the dataset')
     dataset = (await dfRetry(() => axios.post('api/v1/datasets', {
       // 1.x create configs carried the title in dataset.title
       title: processingConfig.datasetTitle || (processingConfig as { dataset?: { title?: string } }).dataset?.title || 'Capteurs Sensor Community',
@@ -24,37 +24,37 @@ export const run: RunFunction<ProcessingConfig> = async ({ processingConfig, pro
       schema: [...datasetSchema, ...columns.filter(c => selectedColumns.includes(c.key))],
       extras: { processingId }
     }), log, { label: 'POST dataset', creates: true })).data
-    await log.info(`jeu de donnée créé, id="${dataset.id}", title="${dataset.title}"`)
+    await log.info(`Dataset created, id="${dataset.id}", title="${dataset.title}"`)
     // switch to update right away, a later failure must not create a second dataset
     await patchConfig({ datasetMode: 'update', dataset: { id: dataset.id, title: dataset.title } })
     if (dataset.status !== 'finalized') await ws.waitForJournal(dataset.id, 'finalize-end')
   } else {
-    await log.step('Vérification du jeu de données')
+    await log.step('Check the dataset')
     dataset = (await axios.get(`api/v1/datasets/${(processingConfig.dataset as { id: string }).id}`)).data
-    await log.info(`le jeu de donnée existe, id="${dataset.id}", title="${dataset.title}"`)
+    await log.info(`Dataset found, id="${dataset.id}", title="${dataset.title}"`)
   }
 
-  await log.step('Récupération des données')
+  await log.step('Fetch the sensor.community feed')
   // the worker axios refuses redirects and has no timeout or size limit, all needed for an external host
   const { data } = await axios.get<Measure[]>(checkSourceUrl(processingConfig.dataUrl ?? DEFAULT_SOURCE_URL), {
     maxRedirects: 5,
     timeout: 120000,
     maxContentLength: MAX_SOURCE_BYTES
   })
-  await log.info(`Données de ${data.length} capteurs récupérées`)
+  await log.info(`${data.length} measure entries fetched`)
   if (shouldBeStopped) return
 
   const { lines, missing } = buildLines(data, processingConfig.sensors ?? [], selectedColumns)
-  if (missing.length) await log.error(`Aucune donnée trouvée pour le(s) capteur(s) ${missing.join(', ')}`)
+  if (missing.length) await log.error(`No data found in the feed for ${missing.length} sensor(s): ${missing.join(', ')}`)
   if (!lines.length) return
 
-  await log.info(`Envoi des données pour ${lines.length} site(s)`)
+  await log.info(`Sending the measures of ${lines.length} site(s)`)
   // lines carry no _id, a replayed bulk would insert them twice: retry on 429 only
   const res = (await dfRetry(() => axios.post(`api/v1/datasets/${dataset.id}/_bulk_lines`, lines), log, { label: 'POST lines', creates: true })).data
   if (res.nbErrors) {
-    await log.error(`${res.nbErrors} échecs sur ${lines.length} lignes à insérer`, res.errors)
-    throw new Error('échec à l\'insertion des lignes dans le jeu de données')
+    await log.error(`${res.nbErrors} of ${lines.length} line(s) failed to insert`, res.errors)
+    throw new Error(`Failed to insert ${res.nbErrors} line(s) into the dataset`)
   }
-  await log.info(`${lines.length} ligne(s) de donnée écrite(s)`)
+  await log.info(`${lines.length} line(s) written`)
   await ws.waitForJournal(dataset.id, 'finalize-end')
 }
