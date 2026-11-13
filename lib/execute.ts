@@ -2,6 +2,10 @@ import type { RunFunction } from '@data-fair/lib-common-types/processings.js'
 import type { ProcessingConfig } from '#types/processingConfig/index.ts'
 import { datasetSchema, columns } from './schema.ts'
 import { buildLines, checkSourceUrl, DEFAULT_SOURCE_URL, type Measure } from './process.ts'
+import { dfRetry } from './retry.ts'
+
+// the full v2 feed weighs a few tens of MB, it is parsed in memory
+const MAX_SOURCE_BYTES = 500 * 1024 * 1024
 
 let shouldBeStopped = false
 export const stop = async (): Promise<void> => { shouldBeStopped = true }
@@ -13,13 +17,13 @@ export const run: RunFunction<ProcessingConfig> = async ({ processingConfig, pro
   let dataset: { id: string, title: string, status?: string }
   if (processingConfig.datasetMode === 'create') {
     await log.step('Création du jeu de données')
-    dataset = (await axios.post('api/v1/datasets', {
+    dataset = (await dfRetry(() => axios.post('api/v1/datasets', {
       // 1.x create configs carried the title in dataset.title
       title: processingConfig.datasetTitle || (processingConfig as { dataset?: { title?: string } }).dataset?.title || 'Capteurs Sensor Community',
       isRest: true,
       schema: [...datasetSchema, ...columns.filter(c => selectedColumns.includes(c.key))],
       extras: { processingId }
-    })).data
+    }), log, { label: 'POST dataset', creates: true })).data
     await log.info(`jeu de donnée créé, id="${dataset.id}", title="${dataset.title}"`)
     // switch to update right away, a later failure must not create a second dataset
     await patchConfig({ datasetMode: 'update', dataset: { id: dataset.id, title: dataset.title } })
@@ -31,8 +35,12 @@ export const run: RunFunction<ProcessingConfig> = async ({ processingConfig, pro
   }
 
   await log.step('Récupération des données')
-  // the worker axios refuses redirects and has no timeout, both needed for an external host
-  const { data } = await axios.get<Measure[]>(checkSourceUrl(processingConfig.dataUrl ?? DEFAULT_SOURCE_URL), { maxRedirects: 5, timeout: 120000 })
+  // the worker axios refuses redirects and has no timeout or size limit, all needed for an external host
+  const { data } = await axios.get<Measure[]>(checkSourceUrl(processingConfig.dataUrl ?? DEFAULT_SOURCE_URL), {
+    maxRedirects: 5,
+    timeout: 120000,
+    maxContentLength: MAX_SOURCE_BYTES
+  })
   await log.info(`Données de ${data.length} capteurs récupérées`)
   if (shouldBeStopped) return
 
@@ -41,7 +49,8 @@ export const run: RunFunction<ProcessingConfig> = async ({ processingConfig, pro
   if (!lines.length) return
 
   await log.info(`Envoi des données pour ${lines.length} site(s)`)
-  const res = (await axios.post(`api/v1/datasets/${dataset.id}/_bulk_lines`, lines)).data
+  // lines carry no _id, a replayed bulk would insert them twice: retry on 429 only
+  const res = (await dfRetry(() => axios.post(`api/v1/datasets/${dataset.id}/_bulk_lines`, lines), log, { label: 'POST lines', creates: true })).data
   if (res.nbErrors) {
     await log.error(`${res.nbErrors} échecs sur ${lines.length} lignes à insérer`, res.errors)
     throw new Error('échec à l\'insertion des lignes dans le jeu de données')
